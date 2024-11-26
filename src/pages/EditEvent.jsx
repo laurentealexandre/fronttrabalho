@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   Container, 
   Paper, 
@@ -11,12 +11,14 @@ import {
   CircularProgress,
   Grid
 } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import api from '../services/api';
 
-const CreateEvent = () => {
+const EditEvent = () => {
+  const { id } = useParams();
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [eventData, setEventData] = useState({
     title: '',
     date: '',
@@ -27,6 +29,32 @@ const CreateEvent = () => {
   });
   const [error, setError] = useState(null);
   const [showSuccess, setShowSuccess] = useState(false);
+
+  useEffect(() => {
+    const fetchEvent = async () => {
+      try {
+        const response = await api.get(`/events/${id}`);
+        const event = response.data;
+        const date = new Date(event.date);
+        
+        setEventData({
+          title: event.title,
+          date: date.toISOString().split('T')[0],
+          time: date.toTimeString().slice(0, 5),
+          description: event.description,
+          location: event.location,
+          capacity: event.capacity
+        });
+      } catch (err) {
+        setError('Erro ao carregar evento. Por favor, tente novamente.');
+        console.error('Erro:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchEvent();
+  }, [id]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -54,11 +82,10 @@ const CreateEvent = () => {
       return;
     }
 
-    setLoading(true);
+    setSaving(true);
     setError(null);
 
     try {
-      // Combina data e hora
       const dateTime = `${eventData.date}T${eventData.time}:00`;
       
       const formattedData = {
@@ -69,24 +96,32 @@ const CreateEvent = () => {
         capacity: parseInt(eventData.capacity)
       };
 
-      await api.post('/events', formattedData);
+      await api.put(`/events/${id}`, formattedData);
       setShowSuccess(true);
       setTimeout(() => {
-        navigate('/events');
+        navigate(`/events/${id}`);
       }, 2000);
     } catch (err) {
-      console.error('Erro ao criar evento:', err);
-      setError(err.response?.data?.message || 'Erro ao criar evento. Por favor, tente novamente.');
+      console.error('Erro ao atualizar evento:', err);
+      setError(err.response?.data?.message || 'Erro ao atualizar evento. Por favor, tente novamente.');
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
+
+  if (loading) {
+    return (
+      <Container sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+        <CircularProgress />
+      </Container>
+    );
+  }
 
   return (
     <Container maxWidth="md">
       <Paper elevation={3} sx={{ p: 4, mt: 4 }}>
         <Typography variant="h5" gutterBottom>
-          Criar Novo Evento
+          Editar Evento
         </Typography>
         <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
           <Grid container spacing={2}>
@@ -98,7 +133,7 @@ const CreateEvent = () => {
                 value={eventData.title}
                 onChange={handleChange}
                 required
-                disabled={loading}
+                disabled={saving}
                 error={!!error && !eventData.title}
               />
             </Grid>
@@ -112,7 +147,7 @@ const CreateEvent = () => {
                 value={eventData.date}
                 onChange={handleChange}
                 required
-                disabled={loading}
+                disabled={saving}
                 InputLabelProps={{ shrink: true }}
                 error={!!error && !eventData.date}
               />
@@ -127,7 +162,7 @@ const CreateEvent = () => {
                 value={eventData.time}
                 onChange={handleChange}
                 required
-                disabled={loading}
+                disabled={saving}
                 InputLabelProps={{ shrink: true }}
                 error={!!error && !eventData.time}
               />
@@ -141,7 +176,7 @@ const CreateEvent = () => {
                 value={eventData.location}
                 onChange={handleChange}
                 required
-                disabled={loading}
+                disabled={saving}
                 error={!!error && !eventData.location}
               />
             </Grid>
@@ -155,7 +190,7 @@ const CreateEvent = () => {
                 value={eventData.capacity}
                 onChange={handleChange}
                 required
-                disabled={loading}
+                disabled={saving}
                 inputProps={{ min: 1 }}
                 error={!!error && (!eventData.capacity || eventData.capacity <= 0)}
               />
@@ -171,7 +206,7 @@ const CreateEvent = () => {
                 required
                 multiline
                 rows={4}
-                disabled={loading}
+                disabled={saving}
               />
             </Grid>
 
@@ -181,23 +216,21 @@ const CreateEvent = () => {
                   type="submit" 
                   variant="contained" 
                   color="primary"
-                  disabled={loading}
-                  sx={{ mt: 2 }}
+                  disabled={saving}
                 >
-                  {loading ? (
+                  {saving ? (
                     <>
                       <CircularProgress size={24} sx={{ mr: 1 }} />
-                      Criando...
+                      Salvando...
                     </>
                   ) : (
-                    'Criar Evento'
+                    'Salvar Alterações'
                   )}
                 </Button>
                 <Button 
                   variant="outlined"
-                  onClick={() => navigate('/events')}
-                  disabled={loading}
-                  sx={{ mt: 2 }}
+                  onClick={() => navigate(`/events/${id}`)}
+                  disabled={saving}
                 >
                   Cancelar
                 </Button>
@@ -213,7 +246,7 @@ const CreateEvent = () => {
         onClose={() => setShowSuccess(false)}
       >
         <Alert severity="success" sx={{ width: '100%' }}>
-          Evento criado com sucesso!
+          Evento atualizado com sucesso!
         </Alert>
       </Snackbar>
 
@@ -230,4 +263,4 @@ const CreateEvent = () => {
   );
 };
 
-export default CreateEvent;
+export default EditEvent;

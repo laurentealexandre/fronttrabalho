@@ -1,44 +1,69 @@
+import { useState, useEffect } from 'react';
 import { 
-    Container, 
-    Grid, 
-    Typography, 
-    Card, 
-    CardContent, 
-    CardActions, 
-    Button 
-  } from '@mui/material';
-  import { useNavigate } from 'react-router-dom';
-  
-  const EventList = () => {
-    const navigate = useNavigate();
-    const events = [
-      {
-        id: 1,
-        title: 'Workshop de React',
-        date: '2024-11-30',
-        description: 'Workshop intensivo sobre React e suas principais funcionalidades.'
-      },
-      {
-        id: 2,
-        title: 'Conferência de Spring Boot',
-        date: '2024-12-14',
-        description: 'Conferência sobre as novidades do Spring Boot e boas práticas.'
-      },
-      {
-        id: 3,
-        title: 'Hackathon de Inovação',
-        date: '2024-12-20',
-        description: 'Maratona de programação focada em soluções inovadoras.'
+  Container, 
+  Grid, 
+  Typography, 
+  Card, 
+  CardContent, 
+  CardActions, 
+  Button,
+  CircularProgress
+} from '@mui/material';
+import { useNavigate } from 'react-router-dom';
+import api from '../services/api';
+
+const EventList = () => {
+  const navigate = useNavigate();
+  const [events, setEvents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchEvents = async () => {
+      try {
+        const response = await api.get('/events');
+        setEvents(response.data);
+        setLoading(false);
+      } catch (err) {
+        console.error('Erro ao buscar eventos:', err);
+        setError('Erro ao carregar eventos. Por favor, tente novamente mais tarde.');
+        setLoading(false);
       }
-    ];
-  
+    };
+
+    fetchEvents();
+  }, []);
+
+  if (loading) {
     return (
-      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-        <Typography variant="h4" gutterBottom>
-          Eventos Disponíveis
+      <Container sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+        <CircularProgress />
+      </Container>
+    );
+  }
+
+  if (error) {
+    return (
+      <Container>
+        <Typography color="error" sx={{ mt: 4 }}>
+          {error}
         </Typography>
-        <Grid container spacing={3}>
-          {events.map((event) => (
+      </Container>
+    );
+  }
+
+  return (
+    <Container maxWidth="lg" sx={{ mt: 4 }}>
+      <Typography variant="h4" gutterBottom>
+        Eventos Disponíveis
+      </Typography>
+      <Grid container spacing={3}>
+        {events.length === 0 ? (
+          <Grid item xs={12}>
+            <Typography>Nenhum evento disponível no momento.</Typography>
+          </Grid>
+        ) : (
+          events.map((event) => (
             <Grid item xs={12} sm={6} md={4} key={event.id}>
               <Card>
                 <CardContent>
@@ -62,10 +87,11 @@ import {
                 </CardActions>
               </Card>
             </Grid>
-          ))}
-        </Grid>
-      </Container>
-    );
-  };
-  
-  export default EventList;
+          ))
+        )}
+      </Grid>
+    </Container>
+  );
+};
+
+export default EventList;

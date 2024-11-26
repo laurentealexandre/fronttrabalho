@@ -6,39 +6,148 @@ import {
   Typography,
   Button,
   Box,
-  Chip,
   Grid,
-  Divider
+  Divider,
+  CircularProgress,
+  Alert,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle
 } from '@mui/material';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
+import PeopleIcon from '@mui/icons-material/People';
+import { useAuth } from '../contexts/AuthContext';
+import api from '../services/api';
 
 const EventDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [event, setEvent] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [isSubscribed, setIsSubscribed] = useState(false);
+  const [subscribing, setSubscribing] = useState(false);
 
   useEffect(() => {
-    // Simular dados do evento (futuramente virá da API)
-    setEvent({
-      id,
-      title: 'Workshop de React',
-      date: '2024-12-01',
-      location: 'Auditório Principal',
-      description: 'Workshop intensivo sobre React e suas principais funcionalidades. Aprenda sobre hooks, context API, e as melhores práticas de desenvolvimento.',
-      organizer: 'Departamento de Computação',
-      capacity: 50,
-      registeredAttendees: 30
-    });
-  }, [id]);
+    const fetchEvent = async () => {
+      try {
+        const response = await api.get(`/events/${id}`);
+        setEvent(response.data);
+        if (user) {
+          const subscriptionResponse = await api.get(`/events/${id}/subscriptions/check`);
+          setIsSubscribed(subscriptionResponse.data.isSubscribed);
+        }
+      } catch (err) {
+        setError('Erro ao carregar o evento. Por favor, tente novamente.');
+        console.error('Erro:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  if (!event) {
+    fetchEvent();
+  }, [id, user]);
+
+  const handleSubscription = async () => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+
+    setSubscribing(true);
+    try {
+      if (isSubscribed) {
+        await api.delete(`/events/${id}/subscriptions`);
+        setIsSubscribed(false);
+      } else {
+        await api.post(`/events/${id}/subscriptions`);
+        setIsSubscribed(true);
+      }
+      // Atualiza o número de inscritos
+      const response = await api.get(`/events/${id}`);
+      setEvent(response.data);
+    } catch (err) {
+      setError('Erro ao processar inscrição. Por favor, tente novamente.');
+    } finally {
+      setSubscribing(false);
+    }
+  };
+
+  const handleDeleteClick = () => {
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteDialogOpen(false);
+  };
+
+  const handleDeleteConfirm = async () => {
+    setDeleting(true);
+    try {
+      await api.delete(`/events/${id}`);
+      navigate('/events');
+    } catch (err) {
+      setError('Erro ao excluir evento. Por favor, tente novamente.');
+      setDeleteDialogOpen(false);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  if (loading) {
     return (
-      <Container>
-        <Typography>Carregando...</Typography>
+      <Container sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+        <CircularProgress />
       </Container>
     );
   }
+
+  if (error) {
+    return (
+      <Container sx={{ mt: 4 }}>
+        <Alert severity="error">{error}</Alert>
+        <Button 
+          variant="contained" 
+          onClick={() => navigate('/events')}
+          sx={{ mt: 2 }}
+        >
+          Voltar para Eventos
+        </Button>
+      </Container>
+    );
+  }
+
+  if (!event) {
+    return (
+      <Container sx={{ mt: 4 }}>
+        <Alert severity="info">Evento não encontrado</Alert>
+        <Button 
+          variant="contained" 
+          onClick={() => navigate('/events')}
+          sx={{ mt: 2 }}
+        >
+          Voltar para Eventos
+        </Button>
+      </Container>
+    );
+  }
+
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    }).format(date);
+  };
 
   return (
     <Container maxWidth="md">
@@ -46,20 +155,32 @@ const EventDetails = () => {
         <Typography variant="h4" gutterBottom>
           {event.title}
         </Typography>
-        
-        <Grid container spacing={2} sx={{ mt: 2 }}>
+
+        <Divider sx={{ my: 3 }} />
+
+        <Grid container spacing={3}>
           <Grid item xs={12} sm={6}>
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
               <CalendarTodayIcon sx={{ mr: 1 }} />
               <Typography>
-                {new Date(event.date).toLocaleDateString()}
+                {formatDate(event.date)}
               </Typography>
             </Box>
           </Grid>
+
           <Grid item xs={12} sm={6}>
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
               <LocationOnIcon sx={{ mr: 1 }} />
               <Typography>{event.location}</Typography>
+            </Box>
+          </Grid>
+
+          <Grid item xs={12} sm={6}>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+              <PeopleIcon sx={{ mr: 1 }} />
+              <Typography>
+                {event.subscribedCount || 0}/{event.capacity} inscritos
+              </Typography>
             </Box>
           </Grid>
         </Grid>
@@ -73,34 +194,90 @@ const EventDetails = () => {
           {event.description}
         </Typography>
 
-        <Box sx={{ mt: 3 }}>
-          <Typography variant="subtitle1" gutterBottom>
-            Organizador: {event.organizer}
-          </Typography>
-          <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
-            <Chip 
-              label={`${event.registeredAttendees}/${event.capacity} inscritos`} 
-              color="primary" 
-            />
-          </Box>
-        </Box>
-
         <Box sx={{ mt: 4, display: 'flex', gap: 2 }}>
           <Button
             variant="contained"
             color="primary"
-            onClick={() => console.log('Inscrever')}
-          >
-            Inscrever-se
-          </Button>
-          <Button
-            variant="outlined"
             onClick={() => navigate('/events')}
           >
-            Voltar
+            Voltar para Lista
           </Button>
+
+          {event.subscribedCount < event.capacity && (
+            <Button
+              variant={isSubscribed ? "outlined" : "contained"}
+              color={isSubscribed ? "error" : "success"}
+              onClick={handleSubscription}
+              disabled={subscribing}
+            >
+              {subscribing ? (
+                <CircularProgress size={24} />
+              ) : isSubscribed ? (
+                'Cancelar Inscrição'
+              ) : (
+                'Inscrever-se'
+              )}
+            </Button>
+          )}
+
+          {user && (
+            <>
+              <Button
+                variant="outlined"
+                color="primary"
+                onClick={() => navigate(`/events/edit/${event.id}`)}
+              >
+                Editar
+              </Button>
+              <Button
+                variant="outlined"
+                color="error"
+                onClick={handleDeleteClick}
+                disabled={deleting}
+              >
+                {deleting ? 'Excluindo...' : 'Excluir'}
+              </Button>
+            </>
+          )}
         </Box>
       </Paper>
+
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={handleDeleteCancel}
+      >
+        <DialogTitle>Confirmar Exclusão</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Tem certeza que deseja excluir o evento "{event.title}"? 
+            Esta ação não pode ser desfeita.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button 
+            onClick={handleDeleteCancel} 
+            disabled={deleting}
+          >
+            Cancelar
+          </Button>
+          <Button 
+            onClick={handleDeleteConfirm} 
+            color="error" 
+            variant="contained"
+            disabled={deleting}
+            autoFocus
+          >
+            {deleting ? (
+              <>
+                <CircularProgress size={24} sx={{ mr: 1 }} />
+                Excluindo...
+              </>
+            ) : (
+              'Excluir'
+            )}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 };
