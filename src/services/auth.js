@@ -2,7 +2,7 @@ import api from './api';
 
 export const authService = {
     login: async (credentials) => {
-        // Por enquanto vamos simular o login
+        
         if (credentials.email === 'admin@example.com' && credentials.password === 'admin') {
             const userData = {
                 email: credentials.email,

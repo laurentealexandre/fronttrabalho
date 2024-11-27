@@ -8,8 +8,7 @@ import {
   Box,
   Snackbar,
   Alert,
-  CircularProgress,
-  Grid
+  CircularProgress
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
@@ -20,7 +19,6 @@ const CreateEvent = () => {
   const [eventData, setEventData] = useState({
     title: '',
     date: '',
-    time: '',
     description: '',
     location: '',
     capacity: ''
@@ -36,36 +34,16 @@ const CreateEvent = () => {
     }));
   };
 
-  const validateForm = () => {
-    if (!eventData.title.trim()) return "O título é obrigatório";
-    if (!eventData.date) return "A data é obrigatória";
-    if (!eventData.time) return "O horário é obrigatório";
-    if (!eventData.location.trim()) return "O local é obrigatório";
-    if (!eventData.capacity || eventData.capacity <= 0) return "A capacidade deve ser maior que zero";
-    return null;
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    const validationError = validateForm();
-    if (validationError) {
-      setError(validationError);
-      return;
-    }
-
     setLoading(true);
     setError(null);
 
     try {
-      // Combina data e hora
-      const dateTime = `${eventData.date}T${eventData.time}:00`;
-      
+      // Formatar a data para incluir o horário
       const formattedData = {
-        title: eventData.title.trim(),
-        date: dateTime,
-        location: eventData.location.trim(),
-        description: eventData.description.trim(),
+        ...eventData,
+        date: `${eventData.date}T00:00:00`,
         capacity: parseInt(eventData.capacity)
       };
 
@@ -76,7 +54,7 @@ const CreateEvent = () => {
       }, 2000);
     } catch (err) {
       console.error('Erro ao criar evento:', err);
-      setError(err.response?.data?.message || 'Erro ao criar evento. Por favor, tente novamente.');
+      setError('Erro ao criar evento. Por favor, tente novamente.');
     } finally {
       setLoading(false);
     }
@@ -89,121 +67,78 @@ const CreateEvent = () => {
           Criar Novo Evento
         </Typography>
         <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
-          <Grid container spacing={2}>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Título do Evento"
-                name="title"
-                value={eventData.title}
-                onChange={handleChange}
-                required
-                disabled={loading}
-                error={!!error && !eventData.title}
-              />
-            </Grid>
-            
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Data"
-                name="date"
-                type="date"
-                value={eventData.date}
-                onChange={handleChange}
-                required
-                disabled={loading}
-                InputLabelProps={{ shrink: true }}
-                error={!!error && !eventData.date}
-              />
-            </Grid>
-            
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Horário"
-                name="time"
-                type="time"
-                value={eventData.time}
-                onChange={handleChange}
-                required
-                disabled={loading}
-                InputLabelProps={{ shrink: true }}
-                error={!!error && !eventData.time}
-              />
-            </Grid>
-
-            <Grid item xs={12} sm={8}>
-              <TextField
-                fullWidth
-                label="Local"
-                name="location"
-                value={eventData.location}
-                onChange={handleChange}
-                required
-                disabled={loading}
-                error={!!error && !eventData.location}
-              />
-            </Grid>
-
-            <Grid item xs={12} sm={4}>
-              <TextField
-                fullWidth
-                label="Capacidade"
-                name="capacity"
-                type="number"
-                value={eventData.capacity}
-                onChange={handleChange}
-                required
-                disabled={loading}
-                inputProps={{ min: 1 }}
-                error={!!error && (!eventData.capacity || eventData.capacity <= 0)}
-              />
-            </Grid>
-
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Descrição"
-                name="description"
-                value={eventData.description}
-                onChange={handleChange}
-                required
-                multiline
-                rows={4}
-                disabled={loading}
-              />
-            </Grid>
-
-            <Grid item xs={12}>
-              <Box sx={{ display: 'flex', gap: 2 }}>
-                <Button 
-                  type="submit" 
-                  variant="contained" 
-                  color="primary"
-                  disabled={loading}
-                  sx={{ mt: 2 }}
-                >
-                  {loading ? (
-                    <>
-                      <CircularProgress size={24} sx={{ mr: 1 }} />
-                      Criando...
-                    </>
-                  ) : (
-                    'Criar Evento'
-                  )}
-                </Button>
-                <Button 
-                  variant="outlined"
-                  onClick={() => navigate('/events')}
-                  disabled={loading}
-                  sx={{ mt: 2 }}
-                >
-                  Cancelar
-                </Button>
-              </Box>
-            </Grid>
-          </Grid>
+          <TextField
+            fullWidth
+            label="Título do Evento"
+            name="title"
+            value={eventData.title}
+            onChange={handleChange}
+            margin="normal"
+            required
+            disabled={loading}
+          />
+          <TextField
+            fullWidth
+            label="Data"
+            name="date"
+            type="date"
+            value={eventData.date}
+            onChange={handleChange}
+            margin="normal"
+            required
+            disabled={loading}
+            InputLabelProps={{ shrink: true }}
+          />
+          <TextField
+            fullWidth
+            label="Local"
+            name="location"
+            value={eventData.location}
+            onChange={handleChange}
+            margin="normal"
+            required
+            disabled={loading}
+          />
+          <TextField
+            fullWidth
+            label="Capacidade"
+            name="capacity"
+            type="number"
+            value={eventData.capacity}
+            onChange={handleChange}
+            margin="normal"
+            required
+            disabled={loading}
+            inputProps={{ min: 1 }}
+          />
+          <TextField
+            fullWidth
+            label="Descrição"
+            name="description"
+            value={eventData.description}
+            onChange={handleChange}
+            margin="normal"
+            required
+            multiline
+            rows={4}
+            disabled={loading}
+          />
+          <Button 
+            type="submit" 
+            variant="contained" 
+            color="primary"
+            sx={{ mt: 3 }}
+            disabled={loading}
+          >
+            {loading ? (
+              <>
+                <CircularProgress size={24} sx={{ mr: 1 }} />
+                Criando...
+              </>
+            ) : (
+              'Criar Evento'
+            )}
+          </Button>
         </Box>
       </Paper>
 
