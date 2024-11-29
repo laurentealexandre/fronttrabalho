@@ -11,7 +11,6 @@ const AppRoutes = () => {
     return (
         <Routes>
             <Route path="/" element={<Home />} />
-            <Route path="/events" element={<EventList />} />
             <Route 
                 path="/events/create" 
                 element={
@@ -29,6 +28,7 @@ const AppRoutes = () => {
                 } 
             />
             <Route path="/events/:id" element={<EventDetails />} />
+            <Route path="/events" element={<EventList />} />
             <Route path="/login" element={<Login />} />
         </Routes>
     );
