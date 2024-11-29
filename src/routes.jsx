@@ -2,7 +2,7 @@ import { Routes, Route } from 'react-router-dom';
 import Home from './pages/Home';
 import EventList from './pages/EventList';
 import CreateEvent from './pages/CreateEvent';
-import EditEvent from './pages/EditEvent';  // Adicione esta importação
+import EditEvent from './pages/EditEvent';  
 import EventDetails from './pages/EventDetails';
 import Login from './pages/Login';
 import PrivateRoute from './components/PrivateRoute';

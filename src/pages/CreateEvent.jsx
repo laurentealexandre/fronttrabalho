@@ -40,7 +40,7 @@ const CreateEvent = () => {
     setError(null);
 
     try {
-      // Formatar a data para incluir o horário
+      
       const formattedData = {
         ...eventData,
         date: `${eventData.date}T00:00:00`,

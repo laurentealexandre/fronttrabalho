@@ -69,7 +69,7 @@ const EventDetails = () => {
         await api.post(`/events/${id}/subscriptions`);
         setIsSubscribed(true);
       }
-      // Atualiza o número de inscritos
+      
       const response = await api.get(`/events/${id}`);
       setEvent(response.data);
     } catch (err) {
